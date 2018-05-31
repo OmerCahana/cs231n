@@ -1,6 +1,11 @@
 import numpy as np
-from past.builtins import xrange
+#from past.builtins import xrange
+import sys
+from collections import Counter
 
+if sys.version_info >= (3, 0):
+    def xrange(*args, **kwargs):
+        return iter(range(*args, **kwargs))
 
 class KNearestNeighbor(object):
   """ a kNN classifier with L2 distance """
@@ -12,7 +17,6 @@ class KNearestNeighbor(object):
     """
     Train the classifier. For k-nearest neighbors this is just 
     memorizing the training data.
-
     Inputs:
     - X: A numpy array of shape (num_train, D) containing the training data
       consisting of num_train samples each of dimension D.
@@ -25,14 +29,12 @@ class KNearestNeighbor(object):
   def predict(self, X, k=1, num_loops=0):
     """
     Predict labels for test data using this classifier.
-
     Inputs:
     - X: A numpy array of shape (num_test, D) containing test data consisting
          of num_test samples each of dimension D.
     - k: The number of nearest neighbors that vote for the predicted labels.
     - num_loops: Determines which implementation to use to compute distances
       between training points and testing points.
-
     Returns:
     - y: A numpy array of shape (num_test,) containing predicted labels for the
       test data, where y[i] is the predicted label for the test point X[i].  
@@ -53,10 +55,8 @@ class KNearestNeighbor(object):
     Compute the distance between each test point in X and each training point
     in self.X_train using a nested loop over both the training data and the 
     test data.
-
     Inputs:
     - X: A numpy array of shape (num_test, D) containing test data.
-
     Returns:
     - dists: A numpy array of shape (num_test, num_train) where dists[i, j]
       is the Euclidean distance between the ith test point and the jth training
@@ -73,7 +73,9 @@ class KNearestNeighbor(object):
         # training point, and store the result in dists[i, j]. You should   #
         # not use a loop over dimension.                                    #
         #####################################################################
-        pass
+
+        dists[i, j] = np.linalg.norm(self.X_train[j] - X[i])
+
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
@@ -83,7 +85,6 @@ class KNearestNeighbor(object):
     """
     Compute the distance between each test point in X and each training point
     in self.X_train using a single loop over the test data.
-
     Input / Output: Same as compute_distances_two_loops
     """
     num_test = X.shape[0]
@@ -95,7 +96,9 @@ class KNearestNeighbor(object):
       # Compute the l2 distance between the ith test point and all training #
       # points, and store the result in dists[i, :].                        #
       #######################################################################
-      pass
+
+      dists[i, :] = np.linalg.norm((self.X_train - X[i]), axis=-1)
+
       #######################################################################
       #                         END OF YOUR CODE                            #
       #######################################################################
@@ -105,7 +108,6 @@ class KNearestNeighbor(object):
     """
     Compute the distance between each test point in X and each training point
     in self.X_train using no explicit loops.
-
     Input / Output: Same as compute_distances_two_loops
     """
     num_test = X.shape[0]
@@ -123,7 +125,9 @@ class KNearestNeighbor(object):
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    pass
+
+    dists = np.sqrt(np.sum(X**2, axis=1).reshape(num_test, 1) + np.sum(self.X_train**2, axis=1) - 2 * X.dot(self.X_train.T))
+
     #########################################################################
     #                         END OF YOUR CODE                              #
     #########################################################################
@@ -133,11 +137,9 @@ class KNearestNeighbor(object):
     """
     Given a matrix of distances between test points and training points,
     predict a label for each test point.
-
     Inputs:
     - dists: A numpy array of shape (num_test, num_train) where dists[i, j]
       gives the distance betwen the ith test point and the jth training point.
-
     Returns:
     - y: A numpy array of shape (num_test,) containing predicted labels for the
       test data, where y[i] is the predicted label for the test point X[i].  
@@ -147,7 +149,9 @@ class KNearestNeighbor(object):
     for i in xrange(num_test):
       # A list of length k storing the labels of the k nearest neighbors to
       # the ith test point.
+
       closest_y = []
+
       #########################################################################
       # TODO:                                                                 #
       # Use the distance matrix to find the k nearest neighbors of the ith    #
@@ -155,7 +159,10 @@ class KNearestNeighbor(object):
       # neighbors. Store these labels in closest_y.                           #
       # Hint: Look up the function numpy.argsort.                             #
       #########################################################################
-      pass
+
+      top_k_indx = np.argsort(dists[i])[:k]
+      closest_y = self.y_train[top_k_indx]
+
       #########################################################################
       # TODO:                                                                 #
       # Now that you have found the labels of the k nearest neighbors, you    #
@@ -163,10 +170,14 @@ class KNearestNeighbor(object):
       # Store this label in y_pred[i]. Break ties by choosing the smaller     #
       # label.                                                                #
       #########################################################################
-      pass
+
+      vote = Counter(closest_y)
+      count = vote.most_common()
+      y_pred[i] = count[0][0]
+
       #########################################################################
-      #                           END OF YOUR CODE                            # 
+      #                           END OF YOUR CODE                            #
       #########################################################################
 
     return y_pred
-
+ 
